@@ -11,10 +11,10 @@ import android.os.IBinder
 import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
+import java.util.Locale
 
 class FloatingOverlayService : Service() {
 
@@ -33,7 +33,8 @@ class FloatingOverlayService : Service() {
             km: Double,
             min: Int,
             verdict: String,
-            netProfit: Int
+            netProfit: Int,
+            fairPrice: Int
         ) {
             val intent = Intent(context, FloatingOverlayService::class.java).apply {
                 putExtra("appName", appName)
@@ -44,6 +45,7 @@ class FloatingOverlayService : Service() {
                 putExtra("min", min)
                 putExtra("verdict", verdict)
                 putExtra("netProfit", netProfit)
+                putExtra("fairPrice", fairPrice)
             }
             context.startService(intent)
         }
@@ -62,8 +64,9 @@ class FloatingOverlayService : Service() {
         val min = intent.getIntExtra("min", 0)
         val verdict = intent.getStringExtra("verdict") ?: "REGULAR"
         val netProfit = intent.getIntExtra("netProfit", 0)
+        val fairPrice = intent.getIntExtra("fairPrice", 0)
 
-        showOverlayBubble(appName, fare, perKm, netPerHour, km, min, verdict, netProfit)
+        showOverlayBubble(appName, fare, perKm, netPerHour, km, min, verdict, netProfit, fairPrice)
         return START_STICKY
     }
 
@@ -75,7 +78,8 @@ class FloatingOverlayService : Service() {
         km: Double,
         min: Int,
         verdict: String,
-        netProfit: Int
+        netProfit: Int,
+        fairPrice: Int
     ) {
         if (windowManager == null) {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -86,30 +90,41 @@ class FloatingOverlayService : Service() {
         }
 
         val tvTitle = overlayView?.findViewById<TextView>(R.id.tvVerdictTitle)
+        val tvFair = overlayView?.findViewById<TextView>(R.id.tvFairPrice)
         val tvSub = overlayView?.findViewById<TextView>(R.id.tvVerdictSub)
         val pillContainer = overlayView?.findViewById<View>(R.id.pillContainer)
 
+        val kmFormatted = String.format(Locale.US, "%.1f", km)
+        val kPerHour = netPerHour / 1000
+        val diffPrice = fairPrice - fare
+
         when (verdict) {
             "ACCEPT" -> {
-                pillContainer?.setBackgroundColor(Color.parseColor("#10b981")) // Green
-                tvTitle?.text = "🟢 ACEPTAR • $$perKm / km"
-                tvSub?.text = "$appName: $$fare ($netProfit neto) | ~$${netPerHour/1000}k/h (${String.format("%.1f", km)}km • ${min}m)"
+                pillContainer?.setBackgroundColor(Color.parseColor("#10b981"))
+                tvTitle?.text = "🟢 ACEPTAR • \$$perKm / km"
+                tvFair?.text = "💡 Tarifa Justa: \$$fairPrice (¡Paga excelente!)"
+                tvFair?.setTextColor(Color.parseColor("#ffffff"))
+                tvSub?.text = "$appName: \$$fare (\$$netProfit neto) | ~$${kPerHour}k/h ($kmFormatted km • $min m)"
             }
             "REJECT" -> {
-                pillContainer?.setBackgroundColor(Color.parseColor("#ef4444")) // Red
-                tvTitle?.text = "🔴 RECHAZAR • $$perKm / km"
-                tvSub?.text = "$appName: $$fare | Bajo retorno: ~$${netPerHour/1000}k/h"
+                pillContainer?.setBackgroundColor(Color.parseColor("#ef4444"))
+                tvTitle?.text = "🔴 RECHAZAR • \$$perKm / km"
+                val diffText = if (diffPrice > 0) " (Faltan \$$diffPrice)" else ""
+                tvFair?.text = "💡 Debería pagar: \$$fairPrice$diffText"
+                tvFair?.setTextColor(Color.parseColor("#fef08a"))
+                tvSub?.text = "$appName: \$$fare ($kmFormatted km • $min m) | ~$${kPerHour}k/h"
             }
             else -> {
-                pillContainer?.setBackgroundColor(Color.parseColor("#f59e0b")) // Amber
-                tvTitle?.text = "🟡 REGULAR • $$perKm / km"
-                tvSub?.text = "$appName: $$fare (${String.format("%.1f", km)}km • ${min}m)"
+                pillContainer?.setBackgroundColor(Color.parseColor("#f59e0b"))
+                tvTitle?.text = "🟡 REGULAR • \$$perKm / km"
+                tvFair?.text = "💡 Debería pagar: \$$fairPrice"
+                tvFair?.setTextColor(Color.parseColor("#ffffff"))
+                tvSub?.text = "$appName: \$$fare ($kmFormatted km • $min m) | ~$${kPerHour}k/h"
             }
         }
 
         overlayView?.visibility = View.VISIBLE
 
-        // Auto dismiss after 16 seconds (Uber/DiDi offer expires)
         dismissRunnable?.let { autoDismissHandler.removeCallbacks(it) }
         dismissRunnable = Runnable {
             overlayView?.visibility = View.GONE
@@ -133,13 +148,12 @@ class FloatingOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 120 // Positioned just above or below the offer card
+            y = 120
         }
 
         val inflater = LayoutInflater.from(this)
         overlayView = inflater.inflate(R.layout.overlay_bubble, null)
 
-        // Close on tap
         overlayView?.setOnClickListener {
             overlayView?.visibility = View.GONE
         }

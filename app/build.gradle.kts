@@ -31,5 +31,5 @@ android {
 }
 
 dependencies {
-    // 100% nativo de Android
+    // 100% Native Android SDK framework - cero dependencias externas
 }

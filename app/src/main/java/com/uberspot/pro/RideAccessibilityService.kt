@@ -22,14 +22,13 @@ class RideAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        val pkgName = event.packageName?.toString() ?: ""
-        if (!pkgName.contains("uber", ignoreCase = true) && !pkgName.contains("didi", ignoreCase = true)) {
-            return
-        }
+        // 1. Instant check: Is the assistant enabled by the driver?
+        if (!prefs.getBoolean("service_enabled", true)) return
+
+        val now = System.currentTimeMillis()
+        if (now - lastProcessTime < 80) return // Throttling 80ms
 
         val root = rootInActiveWindow ?: return
-        val now = System.currentTimeMillis()
-        if (now - lastProcessTime < 150) return // Throttling 150ms
 
         val textCollector = StringBuilder()
         collectTextsRecursively(root, textCollector)
@@ -39,7 +38,7 @@ class RideAccessibilityService : AccessibilityService() {
         lastExtractedText = fullText
         lastProcessTime = now
 
-        parseOfferAndEvaluate(fullText)
+        parseOfferAndEvaluate(fullText, event.packageName?.toString() ?: "")
     }
 
     private fun collectTextsRecursively(node: AccessibilityNodeInfo?, sb: StringBuilder) {
@@ -57,8 +56,32 @@ class RideAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun parseOfferAndEvaluate(rawText: String) {
-        // 1. FARE EXTRACTION (COP7,425 or $8.401 or $9.600)
+    private fun parseOfferAndEvaluate(rawText: String, pkgName: String) {
+        val lowerText = rawText.lowercase()
+        val lowerPkg = pkgName.lowercase()
+
+        // Detect DiDi markers (covers DiDi Express, Pon Tu Precio, taxi, driver)
+        val isDidi = lowerText.contains("didi") ||
+                     lowerText.contains("tarifa de servicio") ||
+                     lowerText.contains("4 puntos") ||
+                     lowerText.contains("pon tu precio") ||
+                     lowerText.contains("arrendamiento") ||
+                     lowerPkg.contains("didi")
+
+        // Detect Uber markers (covers UberX, Economy, Comfort, driver)
+        val isUber = lowerText.contains("uber") ||
+                     lowerText.contains("contrato de renta") ||
+                     lowerText.contains("economy") ||
+                     lowerText.contains("exclusivo") ||
+                     lowerText.contains("viaje:") ||
+                     lowerPkg.contains("uber")
+
+        // Ignore if not a rideshare offer
+        if (!isDidi && !isUber) return
+
+        val appName = if (isDidi) "DiDi" else "Uber"
+
+        // 1. FARE EXTRACTION
         var fare = 0
         val lines = rawText.split("\n")
         for (line in lines) {
@@ -80,21 +103,18 @@ class RideAccessibilityService : AccessibilityService() {
             }
         }
 
-        if (fare < 4000) return // Not a ride offer screen
+        if (fare < 4000) return
 
-        // 2. DETECT APP & COMMISSION
-        val isZeroCommission = rawText.contains("0% de tarifa", ignoreCase = true)
-        val isDidi = rawText.contains("didi", ignoreCase = true) || rawText.contains("pon tu precio", ignoreCase = true) || rawText.contains("arrendamiento", ignoreCase = true)
-        val appName = if (isDidi) "DiDi" else "Uber"
-
+        // 2. COMMISSION
+        val isZeroCommission = lowerText.contains("0% de tarifa")
         val commissionRate = if (isZeroCommission) 0.0 else if (isDidi) 0.15 else 0.20
 
-        // 3. DETECT DISTANCES AND TIMES
-        // Handles: "3 min (820 m)", "8 min (2,6 km)", "A 5 min (0.9 km)", "Viaje: 9 min (2.6 km)"
+        // 3. DISTANCES AND TIMES
+        // Matches "3 min (820 m)", "8 min (2,6 km)", "A 5 min (0.9 km)", "Viaje: 9 min (2.6 km)"
         var totalKm = 0.0
         var totalMin = 0
 
-        val legMatcher = Pattern.compile("([0-9]+)\\s*min(?:uto)?s?\\s*\\(\\s*([0-9]+(?:[.,][0-9]+)?)\\s*(km|m)\\s*\\)", Pattern.CASE_INSENSITIVE).matcher(rawText)
+        val legMatcher = Pattern.compile("([0-9]+)\\s*min(?:uto)?s?[\\s\\n]*\\([\\s\\n]*([0-9]+(?:[.,][0-9]+)?)\\s*(km|m)[\\s\\n]*\\)", Pattern.CASE_INSENSITIVE).matcher(rawText)
         var legsFound = 0
         while (legMatcher.find()) {
             legsFound++
@@ -112,11 +132,15 @@ class RideAccessibilityService : AccessibilityService() {
         }
 
         if (legsFound == 0) {
-            // Fallback standalone search
             val kmMatcher = Pattern.compile("([0-9]+(?:[.,][0-9]+)?)\\s*(?:km|kms)", Pattern.CASE_INSENSITIVE).matcher(rawText)
             while (kmMatcher.find()) {
                 val d = kmMatcher.group(1)?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
                 if (d in 0.5..80.0) totalKm += d
+            }
+            val mMatcher = Pattern.compile("([0-9]{2,4})\\s*(?:m|metros)\\b", Pattern.CASE_INSENSITIVE).matcher(rawText)
+            while (mMatcher.find()) {
+                val mVal = mMatcher.group(1)?.toDoubleOrNull() ?: 0.0
+                if (mVal in 50.0..2500.0) totalKm += mVal / 1000.0
             }
             val minMatcher = Pattern.compile("([0-9]{1,3})\\s*min", Pattern.CASE_INSENSITIVE).matcher(rawText)
             while (minMatcher.find()) {
@@ -127,7 +151,7 @@ class RideAccessibilityService : AccessibilityService() {
 
         if (totalKm <= 0.0) return
 
-        // 4. FINANCIAL CALCULATION & VERDICT
+        // 4. FINANCIAL CALCULATION & FAIR PRICE (Cuánto debería pagar)
         val minRateKm = prefs.getInt("min_rate_km", 1800)
         val minRateMin = prefs.getInt("min_rate_min", 400)
         val fuelType = prefs.getString("fuel_type", "gnv") ?: "gnv"
@@ -141,13 +165,18 @@ class RideAccessibilityService : AccessibilityService() {
         val netPerHour = if (totalMin > 0) ((netProfit.toDouble() / totalMin) * 60).toInt() else 0
         val netPerMin = if (totalMin > 0) (netProfit / totalMin) else 0
 
+        // FAIR PRICE FORMULA: ((km * minRateKm) + (min * minRateMin) + fuelCost) / (1 - comm)
+        val targetProfit = (totalKm * minRateKm) + (totalMin * minRateMin)
+        val rawFairPrice = ((targetProfit + fuelCost) / (1.0 - commissionRate)).toInt()
+        val fairPrice = (Math.round(rawFairPrice / 100.0) * 100).toInt() // Rounded to nearest 100 COP
+
         val verdict = when {
             perKm >= minRateKm && netPerMin >= minRateMin -> "ACCEPT"
             perKm >= (minRateKm * 0.85) -> "REGULAR"
             else -> "REJECT"
         }
 
-        // 5. UPDATE FLOATING BUBBLE OVERLAY IN 50 MILLISECONDS
+        // 5. LAUNCH FLOATING BUBBLE OVERLAY
         FloatingOverlayService.showVerdict(
             this,
             appName = appName,
@@ -157,7 +186,8 @@ class RideAccessibilityService : AccessibilityService() {
             km = totalKm,
             min = totalMin,
             verdict = verdict,
-            netProfit = netProfit
+            netProfit = netProfit,
+            fairPrice = fairPrice
         )
     }
 

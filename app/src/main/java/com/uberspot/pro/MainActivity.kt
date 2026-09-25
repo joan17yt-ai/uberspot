@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
 import android.widget.RadioGroup
+import android.widget.Switch
 import android.widget.Toast
 
 class MainActivity : Activity() {
@@ -20,6 +21,7 @@ class MainActivity : Activity() {
 
         val prefs = getSharedPreferences("UberSpotPrefs", Context.MODE_PRIVATE)
 
+        val swActive = findViewById<Switch>(R.id.swServiceActive)
         val etKm = findViewById<EditText>(R.id.etMinKm)
         val etMin = findViewById<EditText>(R.id.etMinTime)
         val rgFuel = findViewById<RadioGroup>(R.id.rgFuel)
@@ -27,8 +29,26 @@ class MainActivity : Activity() {
         val btnPermOverlay = findViewById<Button>(R.id.btnPermOverlay)
         val btnPermAccess = findViewById<Button>(R.id.btnPermAccess)
 
+        // Load saved state
+        val isEnabled = prefs.getBoolean("service_enabled", true)
+        swActive.isChecked = isEnabled
+        updateSwitchText(swActive, isEnabled)
+
+        swActive.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("service_enabled", isChecked).apply()
+            updateSwitchText(swActive, isChecked)
+            val msg = if (isChecked) "Asistente ACTIVADO (En Turno)" else "Asistente PAUSADO (En Descanso)"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+
         etKm.setText(prefs.getInt("min_rate_km", 1800).toString())
         etMin.setText(prefs.getInt("min_rate_min", 400).toString())
+
+        if (prefs.getString("fuel_type", "gnv") == "gasolina") {
+            rgFuel.check(R.id.rbGas)
+        } else {
+            rgFuel.check(R.id.rbGnv)
+        }
 
         btnSave.setOnClickListener {
             val kmVal = etKm.text.toString().toIntOrNull() ?: 1800
@@ -57,6 +77,16 @@ class MainActivity : Activity() {
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             startActivity(intent)
             Toast.makeText(this, "Activa 'UberSpot Pro' en Servicios Instalados", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun updateSwitchText(sw: Switch, isChecked: Boolean) {
+        if (isChecked) {
+            sw.text = "🟢 Asistente ACTIVO (En Turno)"
+            sw.setTextColor(android.graphics.Color.parseColor("#10b981"))
+        } else {
+            sw.text = "⚪ Asistente PAUSADO (En Descanso)"
+            sw.setTextColor(android.graphics.Color.parseColor("#94a3b8"))
         }
     }
 }
