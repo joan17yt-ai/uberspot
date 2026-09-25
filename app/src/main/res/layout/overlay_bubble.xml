@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pillContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="12dp"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:elevation="12dp"
+    android:background="#10b981">
+
+    <TextView
+        android:id="@+id/tvVerdictTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🟢 ACEPTAR • $2.121 / km"
+        android:textColor="#ffffff"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvVerdictSub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:text="Uber: $7.425 ($5.240 neto) | ~$22k/h (3.5 km • 14 min)"
+        android:textColor="#f8fafc"
+        android:textSize="12sp" />
+
+</LinearLayout>

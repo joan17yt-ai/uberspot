@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#070b14"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="UberSpot Pro BGA"
+            android:textColor="#ffffff"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Asistente de Rentabilidad en Tiempo Real (Uber &amp; DiDi)"
+            android:textColor="#94a3b8"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="🎯 Tus Tarifas Mínimas Exigidas"
+            android:textColor="#00d2ff"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Mínimo COP / Km deseado:"
+            android:textColor="#cbd5e1"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/etMinKm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:textColor="#ffffff"
+            android:background="#151f38"
+            android:padding="12dp"
+            android:text="1800" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Mínimo COP / Minuto deseado (ej. 400 = $24k/h):"
+            android:textColor="#cbd5e1"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/etMinTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:textColor="#ffffff"
+            android:background="#151f38"
+            android:padding="12dp"
+            android:text="400" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Tipo de Combustible:"
+            android:textColor="#cbd5e1"
+            android:textSize="12sp" />
+
+        <RadioGroup
+            android:id="@+id/rgFuel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <RadioButton
+                android:id="@+id/rbGnv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GNV (~$200/km)"
+                android:textColor="#fff"
+                android:checked="true" />
+            <RadioButton
+                android:id="@+id/rbGas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Gasolina (~$420/km)"
+                android:textColor="#fff" />
+        </RadioGroup>
+
+        <Button
+            android:id="@+id/btnSaveSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="💾 Guardar Parámetros"
+            android:background="#00d2ff"
+            android:textColor="#070b14" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="🔑 Permisos del Sistema Requeridos"
+            android:textColor="#ffab00"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnPermOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="1. Activar Ventana Flotante (Aparecer encima)"
+            android:background="#151f38"
+            android:textColor="#ffffff" />
+
+        <Button
+            android:id="@+id/btnPermAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="2. Activar Servicio de Accesibilidad (Lectura 50ms)"
+            android:background="#151f38"
+            android:textColor="#ffffff" />
+
+    </LinearLayout>
+</ScrollView>
