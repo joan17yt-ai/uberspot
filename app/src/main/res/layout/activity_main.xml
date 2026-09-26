@@ -36,7 +36,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Asistente de Turno"
+                    android:text="Asistente Uber Driver"
                     android:textColor="#ffffff"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -55,7 +55,7 @@
                 android:background="@drawable/bg_button_dark"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="5dp"
-                android:text="v2.5 PRO"
+                android:text="UBER EDITION"
                 android:textColor="#38bdf8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -73,7 +73,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CONTROL MAESTRO"
+                android:text="ESTADO DEL ASISTENTE"
                 android:textColor="#00d2ff"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -94,110 +94,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Escaneando ofertas en segundo plano con respuesta en 20ms"
+                android:text="Monitoreando Uber Driver en vivo (Respuesta en 20ms)"
                 android:textColor="#94a3b8"
                 android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- APP SELECTOR CARD -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card_sleek"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📱 PLATAFORMAS MONITOREADAS"
-                android:textColor="#38bdf8"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Elige qué aplicaciones deseas que lea el asistente:"
-                android:textColor="#64748b"
-                android:textSize="11sp" />
-
-            <!-- UBER SWITCH -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="#1e293b"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp"
-                    android:text="UBER"
-                    android:textColor="#ffffff"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_weight="1"
-                    android:text="Uber Driver (UberX, Economy)"
-                    android:textColor="#f8fafc"
-                    android:textSize="14sp" />
-
-                <Switch
-                    android:id="@+id/swMonitorUber"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="10dp"
-                android:background="#1e293b" />
-
-            <!-- DIDI SWITCH -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="#ff7d00"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="4dp"
-                    android:text="DIDI"
-                    android:textColor="#ffffff"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_weight="1"
-                    android:text="DiDi (Express &amp; Pon Tu Precio)"
-                    android:textColor="#f8fafc"
-                    android:textSize="14sp" />
-
-                <Switch
-                    android:id="@+id/swMonitorDidi"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true" />
-            </LinearLayout>
         </LinearLayout>
 
         <!-- FINANCIAL STRATEGY CARD (OPTION B) -->
@@ -219,7 +118,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="⚙️ TUS PARÁMETROS (OPCIÓN B)"
+                    android:text="⚙️ TUS PARÁMETROS DE GANANCIA"
                     android:textColor="#38bdf8"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -230,7 +129,7 @@
                     android:background="#064e3b"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="3dp"
-                    android:text="Mayor entre Km y Min"
+                    android:text="Opción B Activa"
                     android:textColor="#34d399"
                     android:textSize="10sp"
                     android:textStyle="bold" />
@@ -240,7 +139,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="El precio justo no se infla: cobra lo mayor entre distancia o tiempo."
+                android:text="Tarifa Justa calculada por el mayor entre Distancia o Tiempo."
                 android:textColor="#64748b"
                 android:textSize="11sp" />
 
@@ -346,7 +245,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔒 PERMISOS DEL SISTEMA"
+                android:text="🔒 PERMISOS REQUERIDOS"
                 android:textColor="#f59e0b"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -355,32 +254,33 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Requeridos para mostrar la burbuja sobre Uber y DiDi:"
+                android:text="Indispensable para leer Uber y proyectar la burbuja:"
                 android:textColor="#64748b"
                 android:textSize="11sp" />
 
             <Button
-                android:id="@+id/btnPermOverlay"
+                android:id="@+id/btnPermAccess"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="46dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_button_dark"
                 android:gravity="start|center_vertical"
                 android:paddingHorizontal="14dp"
-                android:text="1. Activar Ventana Flotante (Aparecer encima)"
-                android:textColor="#ffffff"
-                android:textSize="12sp" />
+                android:text="1. Activar Servicio de Accesibilidad (OBLIGATORIO)"
+                android:textColor="#00d2ff"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
             <Button
-                android:id="@+id/btnPermAccess"
+                android:id="@+id/btnPermOverlay"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/bg_button_dark"
                 android:gravity="start|center_vertical"
                 android:paddingHorizontal="14dp"
-                android:text="2. Activar Accesibilidad (Lectura ultrarrápida)"
-                android:textColor="#ffffff"
+                android:text="2. Permitir Ventana Flotante (Aparecer encima)"
+                android:textColor="#cbd5e1"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -396,7 +296,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🧪 PRUEBA EN VIVO (SIMULADOR)"
+                android:text="🧪 PRUEBA EN VIVO"
                 android:textColor="#10b981"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -405,39 +305,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Prueba cómo salta la burbuja y los cálculos de Opción B:"
+                android:text="Toca el botón para probar la burbuja flotante ahora mismo:"
                 android:textColor="#64748b"
                 android:textSize="11sp" />
 
-            <LinearLayout
+            <Button
+                android:id="@+id/btnTestUber"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="46dp"
                 android:layout_marginTop="10dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnTestDidi"
-                    android:layout_width="0dp"
-                    android:layout_height="44dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_button_dark"
-                    android:text="🚕 Probar DiDi"
-                    android:textColor="#ff7d00"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btnTestUber"
-                    android:layout_width="0dp"
-                    android:layout_height="44dp"
-                    android:layout_marginStart="10dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_button_dark"
-                    android:text="🚗 Probar Uber"
-                    android:textColor="#00d2ff"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                android:background="@drawable/bg_button_dark"
+                android:text="🚗 Probar Burbuja Flotante en Pantalla"
+                android:textColor="#10b981"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <TextView
@@ -445,7 +326,7 @@
             android:layout_height="wrap_content"
             android:layout_marginVertical="24dp"
             android:gravity="center"
-            android:text="Optimizada para conductores de Bucaramanga y el AMB"
+            android:text="Optimizado para Uber Driver • Bucaramanga"
             android:textColor="#475569"
             android:textSize="11sp" />
 

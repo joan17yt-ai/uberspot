@@ -3,67 +3,88 @@ package com.uberspot.pro
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
+import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.TextView
+import java.util.Locale
 import java.util.regex.Pattern
 
 class RideAccessibilityService : AccessibilityService() {
 
+    companion object {
+        var instance: RideAccessibilityService? = null
+    }
+
     private lateinit var prefs: SharedPreferences
+    private var windowManager: WindowManager? = null
+    private var overlayView: View? = null
+    private var isOverlayAttached = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var dismissRunnable: Runnable? = null
+
     private var lastExtractedText = ""
     private var lastProcessTime = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         prefs = getSharedPreferences("UberSpotPrefs", Context.MODE_PRIVATE)
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
+        removeOverlayView()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        // 1. Instant check: Is the assistant enabled by the driver?
+        // 1. Is the assistant active in settings?
         if (!prefs.getBoolean("service_enabled", true)) return
 
         val now = System.currentTimeMillis()
-        if (now - lastProcessTime < 50) return // Throttling 50ms
+        if (now - lastProcessTime < 50) return // 50ms throttle
 
         val pkgName = (event.packageName ?: "").toString().lowercase()
 
-        // 2. Platform selector check
-        val monitorUber = prefs.getBoolean("monitor_uber", true)
-        val monitorDidi = prefs.getBoolean("monitor_didi", true)
+        // 2. Strict Uber filter
+        val isUberApp = pkgName.contains("uber") || pkgName.contains("ubercab")
+        if (!isUberApp && !pkgName.contains("systemui")) return
 
-        val isUberPkg = pkgName.contains("ubercab") || pkgName.contains("uber")
-        val isDidiPkg = pkgName.contains("didi") || pkgName.contains("xiaojukeji")
-
-        if (isUberPkg && !monitorUber) return
-        if (isDidiPkg && !monitorDidi) return
-
-        // 3. Extract text: Start with rootInActiveWindow for full screen context
+        // 3. Collect all texts from root and event source
         val textCollector = StringBuilder()
         rootInActiveWindow?.let { collectTextsRecursively(it, textCollector) }
+        event.source?.let { collectTextsRecursively(it, textCollector) }
 
-        // Fallback to event.source if rootInActiveWindow was null or empty (e.g. popups/dialogs)
-        if (textCollector.length < 25) {
-            event.source?.let { collectTextsRecursively(it, textCollector) }
-        }
-
-        // Additional fallback across all windows on Android Lollipop+
-        if (textCollector.length < 25 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (textCollector.length < 20 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             try {
-                for (window in windows) {
-                    window.root?.let { collectTextsRecursively(it, textCollector) }
+                for (w in windows) {
+                    w.root?.let { collectTextsRecursively(it, textCollector) }
                 }
             } catch (e: Exception) {}
         }
 
         val fullText = textCollector.toString()
-        if (fullText.isEmpty() || fullText == lastExtractedText) return
-        lastExtractedText = fullText
-        lastProcessTime = now
+        if (fullText.isEmpty()) return
 
-        parseOfferAndEvaluate(fullText, pkgName, monitorUber, monitorDidi)
+        // Only evaluate if content changed or previous attempt was incomplete
+        if (fullText != lastExtractedText) {
+            lastExtractedText = fullText
+            lastProcessTime = now
+            parseUberOfferAndEvaluate(fullText)
+        }
     }
 
     private fun collectTextsRecursively(node: AccessibilityNodeInfo?, sb: StringBuilder) {
@@ -82,41 +103,28 @@ class RideAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun parseOfferAndEvaluate(
-        rawText: String,
-        pkgName: String,
-        monitorUber: Boolean,
-        monitorDidi: Boolean
-    ) {
-        // Normalize Unicode non-breaking spaces (\u00A0, \u202F, etc.) to standard ASCII space
+    private fun parseUberOfferAndEvaluate(rawText: String) {
+        // Clean all Unicode whitespace
         val cleanText = rawText.replace(Regex("[\\u00A0\\u202F\\u2000-\\u200B]"), " ")
         val lowerText = cleanText.lowercase()
-        val lowerPkg = pkgName.lowercase()
 
-        // Detect Uber
-        val isUber = (
-            lowerPkg.contains("ubercab") || lowerPkg.contains("uber") ||
-            lowerText.contains("uber") || lowerText.contains("economy") || lowerText.contains("comfort") ||
-            lowerText.contains("contrato de renta") || lowerText.contains("exclusivo") || lowerText.contains("viaje:")
-        ) && monitorUber
+        // Verify this is an actual Uber offer screen
+        val hasUberMarkers = lowerText.contains("economy") ||
+                             lowerText.contains("uberx") ||
+                             lowerText.contains("comfort") ||
+                             lowerText.contains("flash") ||
+                             lowerText.contains("me interesa") ||
+                             lowerText.contains("viaje:") ||
+                             lowerText.contains("(estimado)") ||
+                             lowerText.contains("contrato de renta")
 
-        // Detect DiDi
-        val isDidi = (
-            lowerPkg.contains("didi") || lowerPkg.contains("xiaojukeji") ||
-            lowerText.contains("didi") || lowerText.contains("pon tu precio") || lowerText.contains("contraofertar") ||
-            lowerText.contains("tarifa de servicio") || lowerText.contains("4 puntos") || lowerText.contains("arrendamiento") ||
-            (lowerText.contains("aceptar") && !isUber)
-        ) && monitorDidi
-
-        if (!isUber && !isDidi) return
-
-        val appName = if (isDidi) "DiDi" else "Uber"
+        if (!hasUberMarkers) return
 
         // 1. FARE EXTRACTION
         val lines = cleanText.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
         var fare = 0
 
-        // Rule A (Uber specific): Main trip fare is immediately followed by '(estimado)' or '/km'
+        // Strategy A: Trip fare is the line right before '(estimado)' or '/km'
         for (idx in 0 until lines.size - 1) {
             val curr = lines[idx]
             val nxt = lines[idx + 1].lowercase()
@@ -133,12 +141,12 @@ class RideAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Rule B: Line immediately following service category (Economy, UberX, Comfort, DiDi Express, etc.)
+        // Strategy B: Line immediately following category name
         if (fare == 0) {
             for (idx in 0 until lines.size - 1) {
                 val curr = lines[idx].lowercase()
                 if (curr.contains("economy") || curr.contains("uberx") || curr.contains("comfort") ||
-                    curr.contains("flash") || curr.contains("moto") || curr.contains("express")) {
+                    curr.contains("flash") || curr.contains("moto")) {
                     val nxt = lines[idx + 1]
                     val m = Pattern.compile("(?:COP|\\$)?\\s*([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,6})", Pattern.CASE_INSENSITIVE).matcher(nxt)
                     if (m.find()) {
@@ -153,57 +161,18 @@ class RideAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Rule C: Inside 'Aceptar $X' or 'Oferta $X' button (common in DiDi Pon Tu Precio)
+        // Strategy C: Scan from bottom of lines (offer card is at bottom, balances at top)
         if (fare == 0) {
-            val acceptMatcher = Pattern.compile(
-                "(?:Aceptar|Oferta|Precio)\\s*(?:COP|\\$)?\\s*([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,6})",
-                Pattern.CASE_INSENSITIVE
-            ).matcher(cleanText)
-            if (acceptMatcher.find()) {
-                val numStr = acceptMatcher.group(1)?.replace(".", "")?.replace(",", "") ?: ""
-                val cand = numStr.toIntOrNull() ?: 0
-                if (cand in 4000..350000) {
-                    fare = cand
-                }
-            }
-        }
-
-        // Rule D: General line scan, strictly ignoring balances (saldo/hoy), surges (+COP), and rates (/km)
-        if (fare == 0) {
-            for (line in lines) {
+            for (i in lines.size - 1 downTo 0) {
+                val line = lines[i]
                 val l = line.lowercase()
                 if (l.contains("/km") || l.contains("+cop") || l.contains("+$") ||
-                    l.contains("saldo") || l.contains("hoy") || l.contains("ganancia") || l.contains("meta")) {
-                    continue
-                }
-                val m = Pattern.compile(
-                    "(?:COP|\\$)\\s*([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,6})|([0-9]{1,3}(?:[.,][0-9]{3})+)\\s*(?:COP|\\$)",
-                    Pattern.CASE_INSENSITIVE
-                ).matcher(line)
-                if (m.find()) {
-                    val numStr = (m.group(1) ?: m.group(2))?.replace(".", "")?.replace(",", "") ?: ""
-                    val cand = numStr.toIntOrNull() ?: 0
-                    if (cand in 4000..350000) {
-                        fare = cand
-                        break
-                    }
-                }
-            }
-        }
+                    l.contains("saldo") || l.contains("hoy") || l.contains("ganancia")) continue
 
-        // Rule E: Standalone numbers formatted as Colombian currency without currency symbol (e.g. 8.500)
-        if (fare == 0) {
-            for (line in lines) {
-                val l = line.lowercase()
-                if (l.contains("/km") || l.contains("km") || l.contains("min") || l.contains("%") ||
-                    l.contains("saldo") || l.contains("hoy")) {
-                    continue
-                }
-                val standaloneMatcher = Pattern.compile(
-                    "\\b([4-9]\\.[0-9]{3}|[1-9][0-9]\\.[0-9]{3}|[1-2][0-9]{2}\\.[0-9]{3})\\b"
-                ).matcher(line)
-                if (standaloneMatcher.find()) {
-                    val cand = standaloneMatcher.group(1)?.replace(".", "")?.toIntOrNull() ?: 0
+                val m = Pattern.compile("(?:COP|\\$)\\s*([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,6})", Pattern.CASE_INSENSITIVE).matcher(line)
+                if (m.find()) {
+                    val numStr = m.group(1)?.replace(".", "")?.replace(",", "") ?: ""
+                    val cand = numStr.toIntOrNull() ?: 0
                     if (cand in 4000..350000) {
                         fare = cand
                         break
@@ -214,15 +183,11 @@ class RideAccessibilityService : AccessibilityService() {
 
         if (fare < 4000) return
 
-        // 2. COMMISSION
-        val isZeroCommission = lowerText.contains("0% de tarifa")
-        val commissionRate = if (isZeroCommission) 0.0 else if (isDidi) 0.15 else 0.20
-
-        // 3. DISTANCES AND TIMES
+        // 2. DISTANCES & TIMES
         var totalKm = 0.0
         var totalMin = 0
 
-        // Pattern 1: Combined "X min (Y km)" or "X min (Y m)"
+        // Combined: "X min (Y km)" or "X min (Y m)"
         val legMatcher = Pattern.compile(
             "([0-9]+)\\s*min(?:uto)?s?\\s*\\(\\s*([0-9]+(?:[.,][0-9]+)?)\\s*(km|m)\\s*\\)",
             Pattern.CASE_INSENSITIVE
@@ -244,7 +209,7 @@ class RideAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Pattern 2: Independent chips (common in DiDi Express & Pon Tu Precio)
+        // Token fallback
         if (legsFound == 0) {
             val kmMatcher = Pattern.compile("([0-9]+(?:[.,][0-9]+)?)\\s*(?:km|kms)\\b", Pattern.CASE_INSENSITIVE).matcher(cleanText)
             while (kmMatcher.find()) {
@@ -267,46 +232,171 @@ class RideAccessibilityService : AccessibilityService() {
 
         if (totalKm <= 0.0) return
 
-        // 4. FINANCIAL CALCULATION - OPCIÓN B (MAYOR ENTRE KM Y TIEMPO, SIN SUMARLOS)
+        // 3. FINANCIAL CALCULATION - OPCIÓN B
         val minRateKm = prefs.getInt("min_rate_km", 1800)
         val minRateMin = prefs.getInt("min_rate_min", 400)
         val fuelType = prefs.getString("fuel_type", "gnv") ?: "gnv"
 
         val fuelPerKm = if (fuelType == "gnv") 200 else 420
         val fuelCost = (totalKm * fuelPerKm).toInt()
-        val commAmount = (fare * commissionRate).toInt()
+        val commRate = if (lowerText.contains("0% de tarifa")) 0.0 else 0.20
+        val commAmount = (fare * commRate).toInt()
         val netProfit = (fare - commAmount - fuelCost).coerceAtLeast(0)
 
         val perKm = (fare / totalKm).toInt()
         val netPerHour = if (totalMin > 0) ((netProfit.toDouble() / totalMin) * 60).toInt() else 0
 
-        // OPTION B: Elige el MAYOR entre el valor por Km y el valor por Minutos
+        // Option B: Mayor entre Km y Minutos
         val targetKmFare = (totalKm * minRateKm).toInt()
         val targetMinFare = (totalMin * minRateMin).toInt()
         val rawFairPrice = maxOf(targetKmFare, targetMinFare)
-        val fairPrice = (Math.round(rawFairPrice / 100.0) * 100).toInt() // Redondeo a la centena
+        val fairPrice = (Math.round(rawFairPrice / 100.0) * 100).toInt()
 
-        // VERDICT
         val verdict = when {
             fare >= fairPrice && perKm >= minRateKm -> "ACCEPT"
             perKm >= (minRateKm * 0.85) -> "REGULAR"
             else -> "REJECT"
         }
 
-        // 5. SHOW FLOATING HUD OVERLAY
-        FloatingOverlayService.showVerdict(
-            this,
-            appName = appName,
-            fare = fare,
-            perKm = perKm,
-            netPerHour = netPerHour,
-            km = totalKm,
-            min = totalMin,
-            verdict = verdict,
-            netProfit = netProfit,
-            fairPrice = fairPrice
-        )
+        // 4. DISPLAY FLOATING OVERLAY DIRECTLY ON UI THREAD
+        mainHandler.post {
+            showOverlayDirect(
+                appName = "Uber",
+                fare = fare,
+                perKm = perKm,
+                netPerHour = netPerHour,
+                km = totalKm,
+                min = totalMin,
+                verdict = verdict,
+                netProfit = netProfit,
+                fairPrice = fairPrice
+            )
+        }
     }
 
-    override fun onInterrupt() {}
+    fun showOverlayDirect(
+        appName: String,
+        fare: Int,
+        perKm: Int,
+        netPerHour: Int,
+        km: Double,
+        min: Int,
+        verdict: String,
+        netProfit: Int,
+        fairPrice: Int
+    ) {
+        try {
+            if (windowManager == null) {
+                windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            }
+
+            if (overlayView == null) {
+                val inflater = LayoutInflater.from(this)
+                overlayView = inflater.inflate(R.layout.overlay_bubble, null)
+                overlayView?.setOnClickListener {
+                    hideOverlay()
+                }
+            }
+
+            val pillContainer = overlayView?.findViewById<View>(R.id.pillContainer)
+            val tvAppBadge = overlayView?.findViewById<TextView>(R.id.tvAppBadge)
+            val tvTitle = overlayView?.findViewById<TextView>(R.id.tvVerdictTitle)
+            val tvFair = overlayView?.findViewById<TextView>(R.id.tvFairPrice)
+            val tvSub = overlayView?.findViewById<TextView>(R.id.tvVerdictSub)
+
+            tvAppBadge?.text = "UBER"
+            val badgeBg = GradientDrawable().apply {
+                setColor(Color.parseColor("#0f172a"))
+                setStroke(2, Color.parseColor("#cbd5e1"))
+                cornerRadius = 14f
+            }
+            tvAppBadge?.background = badgeBg
+
+            val kmFormatted = String.format(Locale.US, "%.1f", km)
+            val kPerHour = netPerHour / 1000
+            val diffPrice = fairPrice - fare
+
+            val strokeColor: Int
+            when (verdict) {
+                "ACCEPT" -> {
+                    strokeColor = Color.parseColor("#10b981")
+                    tvTitle?.text = "🟢 ACEPTAR • \$$perKm / km"
+                    tvTitle?.setTextColor(Color.parseColor("#34d399"))
+                    tvFair?.text = "💡 Tarifa Justa: \$$fairPrice (¡Paga excelente!)"
+                    tvFair?.setTextColor(Color.parseColor("#a7f3d0"))
+                }
+                "REJECT" -> {
+                    strokeColor = Color.parseColor("#ef4444")
+                    tvTitle?.text = "🔴 RECHAZAR • \$$perKm / km"
+                    tvTitle?.setTextColor(Color.parseColor("#f87171"))
+                    val diffText = if (diffPrice > 0) " (Faltan \$$diffPrice)" else ""
+                    tvFair?.text = "💡 Debería pagar: \$$fairPrice$diffText"
+                    tvFair?.setTextColor(Color.parseColor("#fef08a"))
+                }
+                else -> {
+                    strokeColor = Color.parseColor("#f59e0b")
+                    tvTitle?.text = "🟡 REGULAR • \$$perKm / km"
+                    tvTitle?.setTextColor(Color.parseColor("#fbbf24"))
+                    val diffText = if (diffPrice > 0) " (Faltan \$$diffPrice)" else ""
+                    tvFair?.text = "💡 Debería pagar: \$$fairPrice$diffText"
+                    tvFair?.setTextColor(Color.parseColor("#ffffff"))
+                }
+            }
+
+            val containerDrawable = GradientDrawable().apply {
+                setColor(Color.parseColor("#0f172a"))
+                setStroke(4, strokeColor)
+                cornerRadius = 32f
+            }
+            pillContainer?.background = containerDrawable
+
+            tvSub?.text = "$appName: \$$fare (\$$netProfit neto) | ~$${kPerHour}k/h ($kmFormatted km • $min min)"
+
+            if (!isOverlayAttached && overlayView != null) {
+                val params = WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                    PixelFormat.TRANSLUCENT
+                ).apply {
+                    gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                    y = 80
+                }
+                windowManager?.addView(overlayView, params)
+                isOverlayAttached = true
+            }
+
+            overlayView?.visibility = View.VISIBLE
+
+            dismissRunnable?.let { mainHandler.removeCallbacks(it) }
+            dismissRunnable = Runnable {
+                hideOverlay()
+            }
+            mainHandler.postDelayed(dismissRunnable!!, 15000)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun hideOverlay() {
+        try {
+            overlayView?.visibility = View.GONE
+        } catch (e: Exception) {}
+    }
+
+    private fun removeOverlayView() {
+        try {
+            if (isOverlayAttached && overlayView != null) {
+                windowManager?.removeView(overlayView)
+                isOverlayAttached = false
+            }
+        } catch (e: Exception) {}
+    }
+
+    override fun onInterrupt() {
+        removeOverlayView()
+    }
 }
