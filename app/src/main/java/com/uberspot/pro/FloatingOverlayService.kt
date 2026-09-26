@@ -153,7 +153,7 @@ class FloatingOverlayService : Service() {
         }
         pillContainer?.background = containerDrawable
 
-        tvSub?.text = "$appName: \$$fare (\$$netProfit neto) | ~$${kPerHour}k/h ($kmFormatted km • $min m)"
+        tvSub?.text = "$appName: \$$fare (\$$netProfit neto) | ~\$${kPerHour}k/h ($kmFormatted km • $min min)"
 
         overlayView?.visibility = View.VISIBLE
 
