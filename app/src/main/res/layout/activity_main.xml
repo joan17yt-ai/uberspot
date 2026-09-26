@@ -2,152 +2,452 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#070b14"
-    android:padding="20dp">
+    android:background="@drawable/bg_main_dark"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="20dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="UberSpot Pro BGA"
-            android:textColor="#ffffff"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Asistente de Rentabilidad en Tiempo Real (Uber &amp; DiDi)"
-            android:textColor="#94a3b8"
-            android:textSize="13sp" />
-
-        <!-- ON/OFF Switch -->
-        <Switch
-            android:id="@+id/swServiceActive"
+        <!-- HEADER -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:padding="14dp"
-            android:background="#151f38"
-            android:text="🟢 Asistente ACTIVO (En Turno)"
-            android:textColor="#10b981"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="🎯 Tus Tarifas Mínimas Exigidas"
-            android:textColor="#00d2ff"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Mínimo COP / Km deseado:"
-            android:textColor="#cbd5e1"
-            android:textSize="12sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="UBERSPOT PRO"
+                    android:textColor="#00d2ff"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1" />
 
-        <EditText
-            android:id="@+id/etMinKm"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:textColor="#ffffff"
-            android:background="#151f38"
-            android:padding="12dp"
-            android:text="1800" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Asistente de Turno"
+                    android:textColor="#ffffff"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Mínimo COP / Minuto deseado (ej. 400 = $24k/h):"
-            android:textColor="#cbd5e1"
-            android:textSize="12sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍 Bucaramanga, Colombia"
+                    android:textColor="#94a3b8"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
-        <EditText
-            android:id="@+id/etMinTime"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:textColor="#ffffff"
-            android:background="#151f38"
-            android:padding="12dp"
-            android:text="400" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Tipo de Combustible:"
-            android:textColor="#cbd5e1"
-            android:textSize="12sp" />
-
-        <RadioGroup
-            android:id="@+id/rgFuel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <RadioButton
-                android:id="@+id/rbGnv"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="GNV (~$200/km)"
-                android:textColor="#fff"
-                android:checked="true" />
-            <RadioButton
-                android:id="@+id/rbGas"
+                android:background="@drawable/bg_button_dark"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="5dp"
+                android:text="v2.5 PRO"
+                android:textColor="#38bdf8"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- MASTER SWITCH CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_card_master"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="Gasolina (~$420/km)"
-                android:textColor="#fff" />
-        </RadioGroup>
+                android:text="CONTROL MAESTRO"
+                android:textColor="#00d2ff"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
-        <Button
-            android:id="@+id/btnSaveSettings"
+            <Switch
+                android:id="@+id/swServiceActive"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="🟢 Asistente ACTIVO (En Turno)"
+                android:textColor="#10b981"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvSwitchSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Escaneando ofertas en segundo plano con respuesta en 20ms"
+                android:textColor="#94a3b8"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- APP SELECTOR CARD -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="💾 Guardar Parámetros"
-            android:background="#00d2ff"
-            android:textColor="#070b14" />
+            android:background="@drawable/bg_card_sleek"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📱 PLATAFORMAS MONITOREADAS"
+                android:textColor="#38bdf8"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Elige qué aplicaciones deseas que lea el asistente:"
+                android:textColor="#64748b"
+                android:textSize="11sp" />
+
+            <!-- UBER SWITCH -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#1e293b"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="UBER"
+                    android:textColor="#ffffff"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:text="Uber Driver (UberX, Economy)"
+                    android:textColor="#f8fafc"
+                    android:textSize="14sp" />
+
+                <Switch
+                    android:id="@+id/swMonitorUber"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="10dp"
+                android:background="#1e293b" />
+
+            <!-- DIDI SWITCH -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#ff7d00"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="DIDI"
+                    android:textColor="#ffffff"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:text="DiDi (Express &amp; Pon Tu Precio)"
+                    android:textColor="#f8fafc"
+                    android:textSize="14sp" />
+
+                <Switch
+                    android:id="@+id/swMonitorDidi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- FINANCIAL STRATEGY CARD (OPTION B) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_sleek"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⚙️ TUS PARÁMETROS (OPCIÓN B)"
+                    android:textColor="#38bdf8"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#064e3b"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="Mayor entre Km y Min"
+                    android:textColor="#34d399"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="El precio justo no se infla: cobra lo mayor entre distancia o tiempo."
+                android:textColor="#64748b"
+                android:textSize="11sp" />
+
+            <!-- KM RATE -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Tarifa Mínima por Kilómetro (COP):"
+                android:textColor="#cbd5e1"
+                android:textSize="12sp" />
+
+            <EditText
+                android:id="@+id/etMinKm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_input_field"
+                android:inputType="number"
+                android:padding="12dp"
+                android:text="1800"
+                android:textColor="#ffffff"
+                android:textSize="15sp" />
+
+            <!-- MINUTE RATE -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Tarifa Mínima por Minuto (ej: 400 = $24.000/h):"
+                android:textColor="#cbd5e1"
+                android:textSize="12sp" />
+
+            <EditText
+                android:id="@+id/etMinTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_input_field"
+                android:inputType="number"
+                android:padding="12dp"
+                android:text="400"
+                android:textColor="#ffffff"
+                android:textSize="15sp" />
+
+            <!-- FUEL -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Combustible Vehículo:"
+                android:textColor="#cbd5e1"
+                android:textSize="12sp" />
+
+            <RadioGroup
+                android:id="@+id/rgFuel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbGnv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="GNV (~$200/km)"
+                    android:textColor="#ffffff"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rbGas"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:text="Gasolina (~$420/km)"
+                    android:textColor="#ffffff"
+                    android:textSize="13sp" />
+            </RadioGroup>
+
+            <!-- SAVE BUTTON -->
+            <Button
+                android:id="@+id/btnSaveSettings"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_button_cyan"
+                android:text="💾 Guardar Configuración"
+                android:textColor="#070b14"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- SYSTEM PERMISSIONS CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_sleek"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔒 PERMISOS DEL SISTEMA"
+                android:textColor="#f59e0b"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Requeridos para mostrar la burbuja sobre Uber y DiDi:"
+                android:textColor="#64748b"
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/btnPermOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_button_dark"
+                android:gravity="start|center_vertical"
+                android:paddingHorizontal="14dp"
+                android:text="1. Activar Ventana Flotante (Aparecer encima)"
+                android:textColor="#ffffff"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnPermAccess"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_button_dark"
+                android:gravity="start|center_vertical"
+                android:paddingHorizontal="14dp"
+                android:text="2. Activar Accesibilidad (Lectura ultrarrápida)"
+                android:textColor="#ffffff"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- LIVE DEMO / SIMULATOR CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card_sleek"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🧪 PRUEBA EN VIVO (SIMULADOR)"
+                android:textColor="#10b981"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Prueba cómo salta la burbuja y los cálculos de Opción B:"
+                android:textColor="#64748b"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnTestDidi"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_button_dark"
+                    android:text="🚕 Probar DiDi"
+                    android:textColor="#ff7d00"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnTestUber"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_button_dark"
+                    android:text="🚗 Probar Uber"
+                    android:textColor="#00d2ff"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:text="🔑 Permisos del Sistema Requeridos"
-            android:textColor="#ffab00"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnPermOverlay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="1. Activar Ventana Flotante (Aparecer encima)"
-            android:background="#151f38"
-            android:textColor="#ffffff" />
-
-        <Button
-            android:id="@+id/btnPermAccess"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="2. Activar Servicio de Accesibilidad (Lectura 50ms)"
-            android:background="#151f38"
-            android:textColor="#ffffff" />
+            android:layout_marginVertical="24dp"
+            android:gravity="center"
+            android:text="Optimizada para conductores de Bucaramanga y el AMB"
+            android:textColor="#475569"
+            android:textSize="11sp" />
 
     </LinearLayout>
 </ScrollView>

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -89,39 +90,70 @@ class FloatingOverlayService : Service() {
             createOverlayView()
         }
 
+        val pillContainer = overlayView?.findViewById<View>(R.id.pillContainer)
+        val tvAppBadge = overlayView?.findViewById<TextView>(R.id.tvAppBadge)
         val tvTitle = overlayView?.findViewById<TextView>(R.id.tvVerdictTitle)
         val tvFair = overlayView?.findViewById<TextView>(R.id.tvFairPrice)
         val tvSub = overlayView?.findViewById<TextView>(R.id.tvVerdictSub)
-        val pillContainer = overlayView?.findViewById<View>(R.id.pillContainer)
+
+        // App badge styling
+        if (appName.equals("DiDi", ignoreCase = true)) {
+            tvAppBadge?.text = "DIDI"
+            val badgeBg = GradientDrawable().apply {
+                setColor(Color.parseColor("#ff7d00"))
+                cornerRadius = 14f
+            }
+            tvAppBadge?.background = badgeBg
+        } else {
+            tvAppBadge?.text = "UBER"
+            val badgeBg = GradientDrawable().apply {
+                setColor(Color.parseColor("#0f172a"))
+                setStroke(2, Color.parseColor("#cbd5e1"))
+                cornerRadius = 14f
+            }
+            tvAppBadge?.background = badgeBg
+        }
 
         val kmFormatted = String.format(Locale.US, "%.1f", km)
         val kPerHour = netPerHour / 1000
         val diffPrice = fairPrice - fare
 
+        val strokeColor: Int
         when (verdict) {
             "ACCEPT" -> {
-                pillContainer?.setBackgroundColor(Color.parseColor("#10b981"))
+                strokeColor = Color.parseColor("#10b981")
                 tvTitle?.text = "🟢 ACEPTAR • \$$perKm / km"
+                tvTitle?.setTextColor(Color.parseColor("#34d399"))
                 tvFair?.text = "💡 Tarifa Justa: \$$fairPrice (¡Paga excelente!)"
-                tvFair?.setTextColor(Color.parseColor("#ffffff"))
-                tvSub?.text = "$appName: \$$fare (\$$netProfit neto) | ~$${kPerHour}k/h ($kmFormatted km • $min m)"
+                tvFair?.setTextColor(Color.parseColor("#a7f3d0"))
             }
             "REJECT" -> {
-                pillContainer?.setBackgroundColor(Color.parseColor("#ef4444"))
+                strokeColor = Color.parseColor("#ef4444")
                 tvTitle?.text = "🔴 RECHAZAR • \$$perKm / km"
+                tvTitle?.setTextColor(Color.parseColor("#f87171"))
                 val diffText = if (diffPrice > 0) " (Faltan \$$diffPrice)" else ""
                 tvFair?.text = "💡 Debería pagar: \$$fairPrice$diffText"
                 tvFair?.setTextColor(Color.parseColor("#fef08a"))
-                tvSub?.text = "$appName: \$$fare ($kmFormatted km • $min m) | ~$${kPerHour}k/h"
             }
             else -> {
-                pillContainer?.setBackgroundColor(Color.parseColor("#f59e0b"))
+                strokeColor = Color.parseColor("#f59e0b")
                 tvTitle?.text = "🟡 REGULAR • \$$perKm / km"
-                tvFair?.text = "💡 Debería pagar: \$$fairPrice"
+                tvTitle?.setTextColor(Color.parseColor("#fbbf24"))
+                val diffText = if (diffPrice > 0) " (Faltan \$$diffPrice)" else ""
+                tvFair?.text = "💡 Debería pagar: \$$fairPrice$diffText"
                 tvFair?.setTextColor(Color.parseColor("#ffffff"))
-                tvSub?.text = "$appName: \$$fare ($kmFormatted km • $min m) | ~$${kPerHour}k/h"
             }
         }
+
+        // HUD Container Border Styling
+        val containerDrawable = GradientDrawable().apply {
+            setColor(Color.parseColor("#0f172a"))
+            setStroke(4, strokeColor)
+            cornerRadius = 32f
+        }
+        pillContainer?.background = containerDrawable
+
+        tvSub?.text = "$appName: \$$fare (\$$netProfit neto) | ~$${kPerHour}k/h ($kmFormatted km • $min m)"
 
         overlayView?.visibility = View.VISIBLE
 
@@ -129,7 +161,7 @@ class FloatingOverlayService : Service() {
         dismissRunnable = Runnable {
             overlayView?.visibility = View.GONE
         }
-        autoDismissHandler.postDelayed(dismissRunnable!!, 16000)
+        autoDismissHandler.postDelayed(dismissRunnable!!, 15000)
     }
 
     private fun createOverlayView() {
@@ -148,7 +180,7 @@ class FloatingOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 120
+            y = 100
         }
 
         val inflater = LayoutInflater.from(this)
