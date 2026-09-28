@@ -251,7 +251,7 @@ class RideAccessibilityService : AccessibilityService() {
         if (rawLines.isEmpty()) return false
 
         // STEP 1: Filter out map noise, surge pins, account banners, and street numbers
-        val filteredLines = ArrayList<String>()
+        val filteredLines = mutableListOf<String>()
         for (line in rawLines) {
             val lower = line.lowercase()
             // Ignore heat/surge map ranges like "1-2 min", "1-3 min", "1-4 min"
@@ -389,8 +389,8 @@ class RideAccessibilityService : AccessibilityService() {
 
         // Pattern 3: Separated tokens inside the clean target lines
         if (legsFound == 0) {
-            val kmList = ArrayList<Double>()
-            val minList = ArrayList<Int>()
+            val kmList = mutableListOf<Double>()
+            val minList = mutableListOf<Int>()
 
             for (line in targetLines) {
                 val kmMatcher = Pattern.compile("\\b([0-9]+(?:[.,][0-9]+)?)\\s*km\\b", Pattern.CASE_INSENSITIVE).matcher(line)
@@ -412,8 +412,8 @@ class RideAccessibilityService : AccessibilityService() {
 
             if (kmList.isNotEmpty() && minList.isNotEmpty()) {
                 pickupKm = kmList[0]
-                totalKm = kmList.sum()
-                totalMin = minList.sum()
+                totalKm = kmList.sumOf { it }
+                totalMin = minList.sumOf { it }
                 legsFound = kmList.size
             }
         }
@@ -431,7 +431,7 @@ class RideAccessibilityService : AccessibilityService() {
         // STEP 5: CALCULATE AND UPDATE
         val minRateKm = prefs.getInt("min_rate_km", 1800)
         val minRateMin = prefs.getInt("min_rate_min", 400)
-        val maxPickupKm = prefs.getFloat("max_pickup_km", 2.5f)
+        val maxPickupKm = prefs.getFloat("max_pickup_km", 2.5f).toDouble()
 
         val perKm = (fare / totalKm).toInt()
         val perMin = if (totalMin > 0) (fare / totalMin) else 0
