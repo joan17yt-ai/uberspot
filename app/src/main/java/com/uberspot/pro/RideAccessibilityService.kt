@@ -14,6 +14,8 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.HandlerThread
+import android.os.Process
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -48,16 +50,25 @@ class RideAccessibilityService : AccessibilityService() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var resetRunnable: Runnable? = null
 
+    // Dedicated background thread to process screen text without freezing floating overlay
+    private var workerThread: HandlerThread? = null
+    private var backgroundHandler: Handler? = null
+
     // Track active offer to avoid redundant calculations
     private var currentOfferKey = ""
     private var lastEventTime = 0L
-    private var lastFullScanTime = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         prefs = getSharedPreferences("KaptorPrefs", Context.MODE_PRIVATE)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+        // Start dedicated worker thread so main UI thread is 100% free for 60fps floating HUD touch/drag
+        workerThread = HandlerThread("KaptorWorkerThread", Process.THREAD_PRIORITY_BACKGROUND).apply {
+            start()
+        }
+        backgroundHandler = Handler(workerThread!!.looper)
 
         updateStatusNotification(prefs.getBoolean("service_enabled", true))
 
@@ -71,6 +82,9 @@ class RideAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         instance = null
+        try {
+            workerThread?.quitSafely()
+        } catch (e: Exception) {}
         removeOverlayView()
         removeNotification()
     }
@@ -136,67 +150,62 @@ class RideAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
         val isWindowState = (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED)
 
-        // Throttle content changes so we don't saturate CPU during map scrolling or GPS updates
-        if (!isWindowState && (now - lastEventTime < 60)) {
+        // Throttle content changes so GPS road navigation frames do not saturate background worker
+        if (!isWindowState && (now - lastEventTime < 70)) {
             return
         }
         lastEventTime = now
 
-        val rootNode = rootInActiveWindow ?: event.source ?: return
+        // DECOUPLE: Cancel obsolete pending scan and schedule ONLY latest one on background worker thread
+        // Main thread returns in 0.01ms - Floating window touch and drag NEVER freezes!
+        backgroundHandler?.removeCallbacksAndMessages(null)
+        backgroundHandler?.post {
+            inspectScreenInBackground()
+        }
+    }
 
-        var offerFound = false
+    private fun inspectScreenInBackground() {
+        try {
+            val rootNode = rootInActiveWindow ?: return
 
-        // PRIORITY 1: ULTRA-FAST ANCHOR NODE CONTAINER ISOLATION
-        // Inside Uber, the offer is rendered in a CardView/Dialog with an accept button.
-        // Searching for the button anchor directly isolates the card in < 1ms, completely bypassing the map!
-        val anchorTerms = listOf("Me interesa", "me interesa", "Aceptar", "aceptar", "Contrato de renta", "(estimado)")
-        var offerCardContainer: AccessibilityNodeInfo? = null
+            // 1. FAST ANCHOR CONTAINER ISOLATION
+            // In Uber, an incoming trip offer has an accept button ("Me interesa" / "Aceptar")
+            val anchorTerms = listOf("Me interesa", "me interesa", "Aceptar", "aceptar", "Contrato de renta", "(estimado)")
+            var offerCardContainer: AccessibilityNodeInfo? = null
 
-        for (term in anchorTerms) {
-            val matchingNodes = rootNode.findAccessibilityNodeInfosByText(term)
-            if (!matchingNodes.isNullOrEmpty()) {
-                for (node in matchingNodes) {
-                    var curr: AccessibilityNodeInfo? = node
-                    for (level in 0..4) {
-                        val parent = curr?.parent ?: break
-                        // An offer card dialog/container typically has between 3 and 30 children
-                        if (parent.childCount in 3..30) {
-                            offerCardContainer = parent
+            for (term in anchorTerms) {
+                val matchingNodes = rootNode.findAccessibilityNodeInfosByText(term)
+                if (!matchingNodes.isNullOrEmpty()) {
+                    for (node in matchingNodes) {
+                        var curr: AccessibilityNodeInfo? = node
+                        for (level in 0..4) {
+                            val parent = curr?.parent ?: break
+                            if (parent.childCount in 3..30) {
+                                offerCardContainer = parent
+                            }
+                            curr = parent
                         }
-                        curr = parent
+                        if (offerCardContainer != null) break
                     }
-                    if (offerCardContainer != null) break
+                }
+                if (offerCardContainer != null) break
+            }
+
+            var offerFound = false
+
+            // If offer card container was found, collect and parse ONLY this clean card!
+            // Excludes 100% of the background map and turn-by-turn navigation noise!
+            if (offerCardContainer != null) {
+                val cardSb = StringBuilder()
+                collectTextsRecursively(offerCardContainer, cardSb)
+                val cardText = cardSb.toString()
+                if (cardText.isNotBlank()) {
+                    offerFound = parseUberOfferAndEvaluate(cardText)
                 }
             }
-            if (offerCardContainer != null) break
-        }
 
-        // If card container was isolated, collect texts ONLY from this clean card!
-        // This completely eliminates all map text, surge pins ("1-2 min"), and banners!
-        if (offerCardContainer != null) {
-            val cardSb = StringBuilder()
-            collectTextsRecursively(offerCardContainer, cardSb)
-            val cardText = cardSb.toString()
-            if (cardText.isNotBlank()) {
-                offerFound = parseUberOfferAndEvaluate(cardText)
-            }
-        }
-
-        // PRIORITY 2: SOURCE NODE INSPECTION
-        if (!offerFound && event.source != null) {
-            val srcSb = StringBuilder()
-            collectTextsRecursively(event.source, srcSb)
-            val srcText = srcSb.toString()
-            if (hasUberOfferMarkers(srcText)) {
-                offerFound = parseUberOfferAndEvaluate(srcText)
-            }
-        }
-
-        // PRIORITY 3: FULL WINDOW SCAN WITH ROBUST SLICE FILTER
-        if (!offerFound) {
-            // Avoid scanning full window on every minor map frame unless 150ms has passed or window state changed
-            if (isWindowState || (now - lastFullScanTime > 150)) {
-                lastFullScanTime = now
+            // Fallback: If not isolated directly, scan root with smart noise filter
+            if (!offerFound) {
                 val fullSb = StringBuilder()
                 collectTextsRecursively(rootNode, fullSb)
                 val fullText = fullSb.toString()
@@ -204,6 +213,8 @@ class RideAccessibilityService : AccessibilityService() {
                     parseUberOfferAndEvaluate(fullText)
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

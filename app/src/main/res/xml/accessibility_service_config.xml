@@ -5,5 +5,5 @@
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds"
     android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_desc"
-    android:notificationTimeout="20"
+    android:notificationTimeout="80"
     android:packageNames="com.ubercab.driver,com.android.systemui" />
